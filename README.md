@@ -65,12 +65,3 @@ This project was inspired by the [Racing Line Optimization with PSO](https://git
 
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
-
-## Contact
-For questions, feel free to contact me via [GitHub](https://github.com/yourusername).
-
-## Future Work
-- Incorporate additional vehicle dynamics into the cost function.
-- Implement alternative optimization algorithms for comparison.
-- Improve the real-time plotting performance.
-
