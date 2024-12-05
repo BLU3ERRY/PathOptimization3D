@@ -1,3 +1,5 @@
+# pso_optimization.py
+
 import numpy as np
 from typing import Callable, Tuple, List
 
@@ -13,9 +15,9 @@ def optimize(
     """
     Optimize the given cost function using Particle Swarm Optimization (PSO).
     """
-    w = 0.5  # Inertia weight
-    c1 = 1.5  # Cognitive parameter
-    c2 = 1.5  # Social parameter
+    inertia_weight = 0.5  # Inertia weight
+    cognitive_param = 1.5  # Cognitive parameter
+    social_param = 1.5  # Social parameter
 
     swarm_position = np.array([
         [np.random.uniform(boundaries[d][0], boundaries[d][1]) for d in range(n_dimensions)]
@@ -40,20 +42,19 @@ def optimize(
             r1 = np.random.rand(n_dimensions)
             r2 = np.random.rand(n_dimensions)
             swarm_velocity[i] = (
-                w * swarm_velocity[i]
-                + c1 * r1 * (swarm_best_position[i] - swarm_position[i])
-                + c2 * r2 * (global_best_position - swarm_position[i])
+                inertia_weight * swarm_velocity[i]
+                + cognitive_param * r1 * (swarm_best_position[i] - swarm_position[i])
+                + social_param * r2 * (global_best_position - swarm_position[i])
             )
             swarm_position[i] += swarm_velocity[i]
-            for d in range(n_dimensions):
-                swarm_position[i][d] = np.clip(swarm_position[i][d], boundaries[d][0], boundaries[d][1])
-            score = cost_function(list(swarm_position[i]))
+            swarm_position[i] = np.clip(swarm_position[i], [b[0] for b in boundaries], [b[1] for b in boundaries])
+            score = cost_function(swarm_position[i].tolist())
             if score < swarm_best_score[i]:
                 swarm_best_score[i] = score
                 swarm_best_position[i] = swarm_position[i]
                 if score < global_best_score:
                     global_best_score = score
-                    global_best_position = list(swarm_position[i])
+                    global_best_position = swarm_position[i].tolist()
 
         global_history.append(list(global_best_position))
         evaluation_history.append(global_best_score)
@@ -62,6 +63,6 @@ def optimize(
             callback(global_best_position, iteration)
 
         if verbose and (iteration % 10 == 0 or iteration == n_iterations - 1):
-            print(f"Iteration {iteration+1}/{n_iterations}, Best Score: {global_best_score}")
+            print(f"Iteration {iteration + 1}/{n_iterations}, Best Score: {global_best_score}")
 
     return global_best_position, global_best_score, global_history, evaluation_history
