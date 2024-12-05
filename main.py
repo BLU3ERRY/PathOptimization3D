@@ -1,3 +1,5 @@
+# main.py
+
 import os
 import sys
 import numpy as np
@@ -34,6 +36,7 @@ from constants import (
     N_PARTICLES,
     N_ITERATIONS,
     BOUNDARIES,
+    VEHICLE_HEIGHT,
 )
 
 def load_reference_path(file_path: str) -> np.ndarray:
@@ -62,15 +65,15 @@ def initialize_plotting() -> tuple:
     """Initialize real-time plotting."""
     plt.ion()
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    axis = fig.add_subplot(111, projection='3d')
     plt.title("Real-Time Racing Line Optimization")
-    return fig, ax
+    return fig, axis
 
 def update_plot(
     current_solution: List[float],
     iteration: int,
     racing_line_plot,
-    ax,
+    axis,
     drive_inside_sectors,
     drive_outside_sectors,
     fixed_start_point,
@@ -88,18 +91,20 @@ def update_plot(
         racing_line = np.array(racing_line)
         racing_line_plot.set_data(racing_line[:, 0], racing_line[:, 1])
         racing_line_plot.set_3d_properties(racing_line[:, 2])
-        ax.relim()
-        ax.autoscale_view()
+        axis.relim()
+        axis.autoscale_view()
         plt.draw()
         plt.pause(0.001)
     except Exception as e:
         print(f"Error in update_plot callback: {e}")
 
-def cost_function_wrapper(sectors: List[float],
-                          drive_inside_sectors: np.ndarray,
-                          drive_outside_sectors: np.ndarray,
-                          fixed_start_point: np.ndarray,
-                          fixed_end_point: np.ndarray) -> float:
+def cost_function_wrapper(
+    sectors: List[float],
+    drive_inside_sectors: np.ndarray,
+    drive_outside_sectors: np.ndarray,
+    fixed_start_point: np.ndarray,
+    fixed_end_point: np.ndarray
+) -> float:
     """Wrapper for the cost function."""
     return calculate_lap_time_with_constraints(
         sectors,
@@ -115,9 +120,32 @@ def main() -> None:
         reference_path_file = os.path.join(data_dir, 'reference_path.csv')
         reference_path = load_reference_path(reference_path_file)
         reference_path = preprocess_reference_path(reference_path)
+
         plot_3d_lines([reference_path], title="Reference Path (Center Line)")
-        inside_points, outside_points, normals = compute_track_boundaries(reference_path, TRACK_WIDTH)
-        drive_inside_points, drive_outside_points, _ = compute_track_boundaries(reference_path, DRIVE_WIDTH)
+
+        inside_points, outside_points, normals = compute_track_boundaries(
+            reference_path, TRACK_WIDTH
+        )
+        drive_inside_points, drive_outside_points, _ = compute_track_boundaries(
+            reference_path, DRIVE_WIDTH
+        )
+
+        # Apply z-axis offset to drive boundaries
+        drive_inside_points[:, 2] += VEHICLE_HEIGHT / 2
+        drive_outside_points[:, 2] += VEHICLE_HEIGHT / 2
+
+        sectors_indices = np.linspace(0, len(reference_path) - 1, N_SECTORS, dtype=int)
+        drive_inside_sectors = drive_inside_points[sectors_indices]
+        drive_outside_sectors = drive_outside_points[sectors_indices]
+        mid_sectors = reference_path[sectors_indices]
+
+        # Apply z-axis offset to fixed start and end points
+        fixed_start_point = mid_sectors[0].copy()
+        fixed_end_point = mid_sectors[-1].copy()
+        fixed_start_point[2] += VEHICLE_HEIGHT / 2
+        fixed_end_point[2] += VEHICLE_HEIGHT / 2
+
+        # Plot with updated fixed_start_point and fixed_end_point
         plot_track_boundaries_with_normals(
             reference_path,
             inside_points,
@@ -125,29 +153,48 @@ def main() -> None:
             drive_inside_points,
             drive_outside_points,
             normals,
+            fixed_start_point,
+            fixed_end_point,
         )
-        sectors_indices = np.linspace(0, len(reference_path) - 1, N_SECTORS, dtype=int)
-        drive_inside_sectors = drive_inside_points[sectors_indices]
-        drive_outside_sectors = drive_outside_points[sectors_indices]
-        mid_sectors = reference_path[sectors_indices]
-        plot_sectors_with_boundaries(reference_path, drive_inside_sectors, drive_outside_sectors, mid_sectors)
-        fixed_start_point = mid_sectors[0]
-        fixed_end_point = mid_sectors[-1]
-        drive_inside_sectors_opt = drive_inside_sectors[1:-1]
-        drive_outside_sectors_opt = drive_outside_sectors[1:-1]
-        fig, ax = initialize_plotting()
-        ax.plot(reference_path[:, 0], reference_path[:, 1], reference_path[:, 2], 'r-', label='Center Line')
-        ax.plot(drive_inside_points[:, 0], drive_inside_points[:, 1], drive_inside_points[:, 2], 'g--', label='Drive Inside Boundary')
-        ax.plot(drive_outside_points[:, 0], drive_outside_points[:, 1], drive_outside_points[:, 2], 'g--', label='Drive Outside Boundary')
-        racing_line_plot, = ax.plot([], [], [], 'b-', label='Racing Line')
-        ax.legend()
+
+        plot_sectors_with_boundaries(
+            reference_path,
+            drive_inside_sectors,
+            drive_outside_sectors,
+            mid_sectors
+        )
+
+        fig, axis = initialize_plotting()
+        axis.plot(
+            reference_path[:, 0],
+            reference_path[:, 1],
+            reference_path[:, 2],
+            'r-',
+            label='Center Line'
+        )
+        axis.plot(
+            drive_inside_points[:, 0],
+            drive_inside_points[:, 1],
+            drive_inside_points[:, 2],
+            'g--',
+            label='Drive Inside Boundary'
+        )
+        axis.plot(
+            drive_outside_points[:, 0],
+            drive_outside_points[:, 1],
+            drive_outside_points[:, 2],
+            'g--',
+            label='Drive Outside Boundary'
+        )
+        racing_line_plot, = axis.plot([], [], [], 'b-', label='Racing Line')
+        axis.legend()
 
         def callback(current_solution: List[float], iteration: int) -> None:
             update_plot(
                 current_solution,
                 iteration,
                 racing_line_plot,
-                ax,
+                axis,
                 drive_inside_sectors,
                 drive_outside_sectors,
                 fixed_start_point,
@@ -187,16 +234,60 @@ def main() -> None:
         ))
 
         fig_final = plt.figure()
-        ax_final = fig_final.add_subplot(111, projection='3d')
+        axis_final = fig_final.add_subplot(111, projection='3d')
         plt.title("Final Racing Line within Drive Boundaries")
-        ax_final.plot(racing_line[:, 0], racing_line[:, 1], racing_line[:, 2], 'b-', label='Racing Line')
-        ax_final.plot(inside_points[:, 0], inside_points[:, 1], inside_points[:, 2], 'c-', label='Track Inside Boundary')
-        ax_final.plot(outside_points[:, 0], outside_points[:, 1], outside_points[:, 2], 'c-', label='Track Outside Boundary')
-        ax_final.plot(drive_inside_points[:, 0], drive_inside_points[:, 1], drive_inside_points[:, 2], 'g--', label='Drive Inside Boundary')
-        ax_final.plot(drive_outside_points[:, 0], drive_outside_points[:, 1], drive_outside_points[:, 2], 'g--', label='Drive Outside Boundary')
-        ax_final.scatter(racing_line[0, 0], racing_line[0, 1], racing_line[0, 2], color='k', marker='o', label='Start Point')
-        ax_final.scatter(racing_line[-1, 0], racing_line[-1, 1], racing_line[-1, 2], color='k', marker='X', label='End Point')
-        ax_final.legend()
+        axis_final.plot(
+            racing_line[:, 0],
+            racing_line[:, 1],
+            racing_line[:, 2],
+            'b-',
+            label='Racing Line'
+        )
+        axis_final.plot(
+            inside_points[:, 0],
+            inside_points[:, 1],
+            inside_points[:, 2],
+            'c-',
+            label='Track Inside Boundary'
+        )
+        axis_final.plot(
+            outside_points[:, 0],
+            outside_points[:, 1],
+            outside_points[:, 2],
+            'c-',
+            label='Track Outside Boundary'
+        )
+        axis_final.plot(
+            drive_inside_points[:, 0],
+            drive_inside_points[:, 1],
+            drive_inside_points[:, 2],
+            'g--',
+            label='Drive Inside Boundary'
+        )
+        axis_final.plot(
+            drive_outside_points[:, 0],
+            drive_outside_points[:, 1],
+            drive_outside_points[:, 2],
+            'g--',
+            label='Drive Outside Boundary'
+        )
+        axis_final.scatter(
+            racing_line[0, 0],
+            racing_line[0, 1],
+            racing_line[0, 2],
+            color='k',
+            marker='o',
+            label='Start Point'
+        )
+        axis_final.scatter(
+            racing_line[-1, 0],
+            racing_line[-1, 1],
+            racing_line[-1, 2],
+            color='k',
+            marker='X',
+            label='End Point'
+        )
+        axis_final.legend()
         plt.show()
 
         racing_line_file = os.path.join(data_dir, 'racing_line_midpoints.csv')
