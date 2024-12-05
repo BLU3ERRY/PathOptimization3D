@@ -1,3 +1,5 @@
+# cost_functions.py
+
 from typing import List
 import numpy as np
 from constants import WHEEL_SPACING, STEERING_RANGE, MAX_SPEED
@@ -66,7 +68,6 @@ def calculate_curvature(p_prev: np.ndarray, p_curr: np.ndarray, p_next: np.ndarr
     bc = p_next - p_curr
     cross_prod = np.cross(ba, bc)
     cross_prod_norm = np.linalg.norm(cross_prod)
-    dot_prod = np.dot(ba, bc)
     norm_ba = np.linalg.norm(ba)
     norm_bc = np.linalg.norm(bc)
     if norm_ba == 0 or norm_bc == 0:
