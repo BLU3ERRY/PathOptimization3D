@@ -1,3 +1,5 @@
+# utilities.py
+
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import List, Tuple
@@ -17,14 +19,23 @@ def compute_track_boundaries(
     n_points = len(reference_path)
 
     for i in range(n_points):
-        direction_vector = (
-            reference_path[i + 1] - reference_path[i] if i < n_points - 1 else reference_path[i] - reference_path[i - 1]
-        )
+        if i < n_points - 1:
+            direction_vector = reference_path[i + 1] - reference_path[i]
+        else:
+            direction_vector = reference_path[i] - reference_path[i - 1]
         norm = np.linalg.norm(direction_vector)
-        direction_vector = direction_vector / norm if norm != 0 else np.array([1.0, 0.0, 0.0])
+        if norm != 0:
+            direction_vector /= norm
+        else:
+            direction_vector = np.array([1.0, 0.0, 0.0])
+
         normal_vector = np.array([-direction_vector[1], direction_vector[0], 0.0])
         normal_norm = np.linalg.norm(normal_vector)
-        normal_vector = normal_vector / normal_norm if normal_norm != 0 else np.array([0.0, 0.0, 1.0])
+        if normal_norm != 0:
+            normal_vector /= normal_norm
+        else:
+            normal_vector = np.array([0.0, 0.0, 1.0])
+
         current_point = reference_path[i]
         inside_point = current_point - normal_vector * (track_width / 2)
         outside_point = current_point + normal_vector * (track_width / 2)
@@ -40,33 +51,78 @@ def plot_track_boundaries_with_normals(
     outside_points: np.ndarray,
     drive_inside_points: np.ndarray,
     drive_outside_points: np.ndarray,
-    normals: np.ndarray
+    normals: np.ndarray,
+    fixed_start_point: np.ndarray,
+    fixed_end_point: np.ndarray,
 ) -> None:
     """
     Plot the track boundaries along with normal vectors.
     """
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    axis = fig.add_subplot(111, projection='3d')
     plt.title("Track Boundaries with Normal Vectors")
-    ax.plot(reference_path[:, 0], reference_path[:, 1], reference_path[:, 2], 'r-', label='Center Line')
-    ax.plot(inside_points[:, 0], inside_points[:, 1], inside_points[:, 2], 'b-', label='Track Inside Boundary')
-    ax.plot(outside_points[:, 0], outside_points[:, 1], outside_points[:, 2], 'b-', label='Track Outside Boundary')
-    ax.plot(drive_inside_points[:, 0], drive_inside_points[:, 1], drive_inside_points[:, 2], 'g--', label='Drive Inside Boundary')
-    ax.plot(drive_outside_points[:, 0], drive_outside_points[:, 1], drive_outside_points[:, 2], 'g--', label='Drive Outside Boundary')
-    start_point = reference_path[0]
-    end_point = reference_path[-1]
-    ax.scatter(start_point[0], start_point[1], start_point[2], color='k', marker='o', label='Start Point')
-    ax.scatter(end_point[0], end_point[1], end_point[2], color='k', marker='X', label='End Point')
-    ax.legend()
+    axis.plot(
+        reference_path[:, 0],
+        reference_path[:, 1],
+        reference_path[:, 2],
+        'r-',
+        label='Center Line'
+    )
+    axis.plot(
+        inside_points[:, 0],
+        inside_points[:, 1],
+        inside_points[:, 2],
+        'b-',
+        label='Track Inside Boundary'
+    )
+    axis.plot(
+        outside_points[:, 0],
+        outside_points[:, 1],
+        outside_points[:, 2],
+        'b-',
+        label='Track Outside Boundary'
+    )
+    axis.plot(
+        drive_inside_points[:, 0],
+        drive_inside_points[:, 1],
+        drive_inside_points[:, 2],
+        'g--',
+        label='Drive Inside Boundary'
+    )
+    axis.plot(
+        drive_outside_points[:, 0],
+        drive_outside_points[:, 1],
+        drive_outside_points[:, 2],
+        'g--',
+        label='Drive Outside Boundary'
+    )
+    # Use fixed_start_point and fixed_end_point with z-offset
+    axis.scatter(
+        fixed_start_point[0],
+        fixed_start_point[1],
+        fixed_start_point[2],
+        color='k',
+        marker='o',
+        label='Start Point'
+    )
+    axis.scatter(
+        fixed_end_point[0],
+        fixed_end_point[1],
+        fixed_end_point[2],
+        color='k',
+        marker='X',
+        label='End Point'
+    )
+    axis.legend()
     plt.show()
 
 def plot_3d_lines(lines: List[np.ndarray], title: str = "3D Plot") -> None:
     """Plot multiple 3D lines."""
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    axis = fig.add_subplot(111, projection='3d')
     for line in lines:
         x, y, z = line[:, 0], line[:, 1], line[:, 2]
-        ax.plot(x, y, z)
+        axis.plot(x, y, z)
     plt.title(title)
     plt.show()
 
@@ -93,19 +149,37 @@ def plot_sectors_with_boundaries(
 ) -> None:
     """Plot the sectors with boundaries on the track."""
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    axis = fig.add_subplot(111, projection='3d')
     plt.title("Track Sectors with Boundaries")
     for i in range(len(drive_inside_sectors)):
-        ax.plot(
+        axis.plot(
             [drive_inside_sectors[i][0], drive_outside_sectors[i][0]],
             [drive_inside_sectors[i][1], drive_outside_sectors[i][1]],
             [drive_inside_sectors[i][2], drive_outside_sectors[i][2]],
             'g--'
         )
-    ax.plot(reference_path[:, 0], reference_path[:, 1], reference_path[:, 2], 'r-', label='Center Line')
-    ax.plot(drive_inside_sectors[:, 0], drive_inside_sectors[:, 1], drive_inside_sectors[:, 2], 'g--', label='Drive Inside Boundary')
-    ax.plot(drive_outside_sectors[:, 0], drive_outside_sectors[:, 1], drive_outside_sectors[:, 2], 'g--', label='Drive Outside Boundary')
-    ax.legend()
+    axis.plot(
+        reference_path[:, 0],
+        reference_path[:, 1],
+        reference_path[:, 2],
+        'r-',
+        label='Center Line'
+    )
+    axis.plot(
+        drive_inside_sectors[:, 0],
+        drive_inside_sectors[:, 1],
+        drive_inside_sectors[:, 2],
+        'g--',
+        label='Drive Inside Boundary'
+    )
+    axis.plot(
+        drive_outside_sectors[:, 0],
+        drive_outside_sectors[:, 1],
+        drive_outside_sectors[:, 2],
+        'g--',
+        label='Drive Outside Boundary'
+    )
+    axis.legend()
     plt.show()
 
 def plot_lap_time_history(evaluation_history: List[float]) -> None:
