@@ -220,6 +220,8 @@ def main() -> None:
             fixed_end_point,
         )
 
+        #0.5: 경로의 중앙을 주행하는 것을 나타냄.
+        #먼저 경로의 중앙을 주행하는 경우를 출력한다.
         sample_sectors = [0.5] * N_OPTIMIZABLE_SECTORS
         sample_lap_time = cost_function(sample_sectors)
         print(f"Sample lap time: {sample_lap_time}")

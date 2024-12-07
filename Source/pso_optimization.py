@@ -16,16 +16,24 @@ def optimize(
     Optimize the given cost function using Particle Swarm Optimization (PSO).
     --------------------------------
     cost_function: 함수, 랩 타임을 측정하는 척도, 최적화 대상.
-    n_dimensions: 
+    n_dimensions: int, 최적화 대상 SECTOR의 개수
+    boundaries: sector의 값의 최소, 최대값을 담은 tuple의 list. 일반적으로 [(0.0, 1.0), ..., (0.0, 1.0)].
+    n_particles: int, 각 SECTOR 마다 적용하는 swarm particle의 개수.
+    n_iterations: int, 최적화 계산 반복 횟수
     """
     inertia_weight = 0.5  # Inertia weight
     cognitive_param = 1.5  # Cognitive parameter
     social_param = 1.5  # Social parameter
 
+    #swarm은 여러 개의 particle의 모임.
+    #swarm position의 각 i번째 행은 i번째 particle이며, 각 particle은 n_dimension개의 sector의 값 (0.0부터 1.0까지)이 담겨있음.
+    #(n_particles, n_dimensions), float, 초기화는 무작위로 설정.
     swarm_position = np.array([
         [np.random.uniform(boundaries[d][0], boundaries[d][1]) for d in range(n_dimensions)]
         for _ in range(n_particles)
     ])
+
+    #0으로 초기화.
     swarm_velocity = np.zeros((n_particles, n_dimensions))
     swarm_best_position = np.copy(swarm_position)
     swarm_best_score = np.array([cost_function(p.tolist()) for p in swarm_position])
@@ -40,6 +48,7 @@ def optimize(
     if verbose:
         print(f"Initial global best score: {global_best_score}")
 
+    #본 계산 작업
     for iteration in range(n_iterations):
         for i in range(n_particles):
             r1 = np.random.rand(n_dimensions)
