@@ -15,7 +15,7 @@ data_dir = os.path.join(current_dir, 'Data')
 if source_dir not in sys.path:
     sys.path.append(source_dir)
 
-from utilities import (
+from Source.utilities import (
     plot_3d_lines,
     compute_track_boundaries,
     smooth_reference_path,
@@ -23,12 +23,12 @@ from utilities import (
     plot_sectors_with_boundaries,
     plot_lap_time_history,
 )
-from pso_optimization import optimize
-from cost_functions import (
+from Source.pso_optimization import optimize
+from Source.cost_functions import (
     calculate_lap_time_with_constraints,
     convert_sectors_to_racing_line,
 )
-from constants import (
+from Source.constants import (
     TRACK_WIDTH,
     DRIVE_WIDTH,
     N_SECTORS,
@@ -117,15 +117,21 @@ def cost_function_wrapper(
 def main() -> None:
     """Main function to execute the optimization of the racing line."""
     try:
+        #불러오기
         reference_path_file = os.path.join(data_dir, 'reference_path.csv')
         reference_path = load_reference_path(reference_path_file)
+        
+        #스플라인 전처리
         reference_path = preprocess_reference_path(reference_path)
 
         plot_3d_lines([reference_path], title="Reference Path (Center Line)")
 
+        #트랙은 8m 너비. 이 기준으로 안쪽 지점과 바깥쪽 지점 계산.
         inside_points, outside_points, normals = compute_track_boundaries(
             reference_path, TRACK_WIDTH
         )
+
+        #안전상 주행하는 한계는 트랙보다 작은 범위(DRIVE_WIDTH)로만 제한.
         drive_inside_points, drive_outside_points, _ = compute_track_boundaries(
             reference_path, DRIVE_WIDTH
         )
@@ -134,7 +140,12 @@ def main() -> None:
         drive_inside_points[:, 2] += VEHICLE_HEIGHT / 2
         drive_outside_points[:, 2] += VEHICLE_HEIGHT / 2
 
+        #입력 레퍼런스 지점들은 750개 이상의 지점들로 이루어짐.
+        #이것을 N_SECTOR개 만으로 샘플링을 함.
+        #sectors_indices는 샘플링된 지점들의 번호들의 모임.
         sectors_indices = np.linspace(0, len(reference_path) - 1, N_SECTORS, dtype=int)
+
+        #샘플링된 안쪽 주행지점, 바깥쪽 주행 지점, 그리고 중앙 지점들의 좌표.
         drive_inside_sectors = drive_inside_points[sectors_indices]
         drive_outside_sectors = drive_outside_points[sectors_indices]
         mid_sectors = reference_path[sectors_indices]
@@ -213,6 +224,7 @@ def main() -> None:
         sample_lap_time = cost_function(sample_sectors)
         print(f"Sample lap time: {sample_lap_time}")
 
+        #PSO 최적화 수행
         global_solution, global_evaluation, global_history, evaluation_history = optimize(
             cost_function=cost_function,
             n_dimensions=N_OPTIMIZABLE_SECTORS,

@@ -10,8 +10,14 @@ def compute_track_boundaries(
     track_width: float
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    Compute the inner and outer boundaries of the track.
-    Returns the normal vectors for each reference point.
+    --------------------
+    reference_path: np.ndarray (N x 3): 레퍼런스 지점들의 좌표
+    track_width: float
+    --------------------
+    출력 튜플
+        - 안쪽 지점들: np.ndaray (N x 3)
+        - 바깥쪽 지점들: np.ndarray (N x 3)
+        - 노멀 벡터들(방향 벡터와 수직인 벡터들 모음): np.ndarray (N x 3)
     """
     inside_points = []
     outside_points = []
@@ -29,14 +35,18 @@ def compute_track_boundaries(
         else:
             direction_vector = np.array([1.0, 0.0, 0.0])
 
+        #노멀 벡터: 방향 벡터에서 z성분은 무시하고 CCW 90도 회전 후 크기를 1로 만들기
         normal_vector = np.array([-direction_vector[1], direction_vector[0], 0.0])
         normal_norm = np.linalg.norm(normal_vector)
         if normal_norm != 0:
             normal_vector /= normal_norm
+        #FailSafe 코드
         else:
             normal_vector = np.array([0.0, 0.0, 1.0])
 
         current_point = reference_path[i]
+        #조한 코멘트: 현재 트랙은 전체적으로 CCW 회전임. 직전에 구한 노멀 벡터 기준으로는 inside_point와 outside_point가 반대로 구해지는 것 같음.
+        #작동에는 문제 없어보임.
         inside_point = current_point - normal_vector * (track_width / 2)
         outside_point = current_point + normal_vector * (track_width / 2)
         inside_points.append(inside_point)
@@ -127,9 +137,17 @@ def plot_3d_lines(lines: List[np.ndarray], title: str = "3D Plot") -> None:
     plt.show()
 
 def smooth_reference_path(reference_path: np.ndarray, smooth_factor: float = 0.0) -> np.ndarray:
-    """Smooth the reference path using spline interpolation."""
+    """
+    레퍼런스 전처리 과정
+    -------------------------
+    reference_path: np.ndarray (N x 3), 입력 경로의 좌표
+    smooth_factor: float (0 이상.)
+    -------------------------
+    smoothed_path: np.ndarray (M x 3), 전처리된 결과 경로 좌표
+    """
     if smooth_factor < 0:
         raise ValueError("Smooth factor must be non-negative.")
+    #마스크: 이전 지점과 다른 지점만 고르는 마스크 같음.
     mask = np.any(np.diff(reference_path, axis=0) != 0, axis=1)
     reference_path = reference_path[:-1][mask]
     reference_path = reference_path[np.isfinite(reference_path).all(axis=1)]
