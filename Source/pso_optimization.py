@@ -14,6 +14,9 @@ def optimize(
 ) -> Tuple[List[float], float, List[List[float]], List[float]]:
     """
     Optimize the given cost function using Particle Swarm Optimization (PSO).
+    --------------------------------
+    cost_function: 함수, 랩 타임을 측정하는 척도, 최적화 대상.
+    n_dimensions: 
     """
     inertia_weight = 0.5  # Inertia weight
     cognitive_param = 1.5  # Cognitive parameter
