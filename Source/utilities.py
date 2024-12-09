@@ -15,12 +15,12 @@ def compute_track_boundaries(
     track_width: float
     --------------------
     출력 튜플
-        - 안쪽 지점들: np.ndaray (N x 3)
-        - 바깥쪽 지점들: np.ndarray (N x 3)
+        - 우측 지점들: np.ndaray (N x 3)
+        - 좌측 지점들: np.ndarray (N x 3)
         - 노멀 벡터들(방향 벡터와 수직인 벡터들 모음): np.ndarray (N x 3)
     """
-    inside_points = []
-    outside_points = []
+    rightside_points = []
+    leftside_points = []
     normals = []
     n_points = len(reference_path)
 
@@ -35,7 +35,7 @@ def compute_track_boundaries(
         else:
             direction_vector = np.array([1.0, 0.0, 0.0])
 
-        #노멀 벡터: 방향 벡터에서 z성분은 무시하고 CCW 90도 회전 후 크기를 1로 만들기
+        #노멀 벡터: 방향 벡터에서 z성분은 무시하고 CCW 90도 회전 후 크기를 1로 만들기: 차 와 트랙 진행 방향 기준으로 왼쪽을 향함.
         normal_vector = np.array([-direction_vector[1], direction_vector[0], 0.0])
         normal_norm = np.linalg.norm(normal_vector)
         if normal_norm != 0:
@@ -45,22 +45,21 @@ def compute_track_boundaries(
             normal_vector = np.array([0.0, 0.0, 1.0])
 
         current_point = reference_path[i]
-        #조한 코멘트: 현재 트랙은 전체적으로 CCW 회전임. 직전에 구한 노멀 벡터 기준으로는 inside_point와 outside_point가 반대로 구해지는 것 같음.
-        #작동에는 문제 없어보임.
-        inside_point = current_point - normal_vector * (track_width / 2)
-        outside_point = current_point + normal_vector * (track_width / 2)
-        inside_points.append(inside_point)
-        outside_points.append(outside_point)
+        #좌측 지점과 우측 지점 정의
+        rightside_point = current_point - normal_vector * (track_width / 2)
+        leftside_point = current_point + normal_vector * (track_width / 2)
+        rightside_points.append(rightside_point)
+        leftside_points.append(leftside_point)
         normals.append(normal_vector)
 
-    return np.array(inside_points), np.array(outside_points), np.array(normals)
+    return np.array(rightside_points), np.array(leftside_points), np.array(normals)
 
 def plot_track_boundaries_with_normals(
     reference_path: np.ndarray,
-    inside_points: np.ndarray,
-    outside_points: np.ndarray,
-    drive_inside_points: np.ndarray,
-    drive_outside_points: np.ndarray,
+    rightside_points: np.ndarray,
+    leftside_points: np.ndarray,
+    drive_rightside_points: np.ndarray,
+    drive_leftside_points: np.ndarray,
     normals: np.ndarray,
     fixed_start_point: np.ndarray,
     fixed_end_point: np.ndarray,
@@ -75,36 +74,41 @@ def plot_track_boundaries_with_normals(
         reference_path[:, 0],
         reference_path[:, 1],
         reference_path[:, 2],
-        'r-',
-        label='Center Line'
+        linestyle='dashed',
+        label='Center Line',
+        color='#000000'
     )
     axis.plot(
-        inside_points[:, 0],
-        inside_points[:, 1],
-        inside_points[:, 2],
-        'b-',
-        label='Track Inside Boundary'
+        rightside_points[:, 0],
+        rightside_points[:, 1],
+        rightside_points[:, 2],
+        linestyle='dashed',
+        label='Track Rightside Boundary',
+        color='#FF0000'
     )
     axis.plot(
-        outside_points[:, 0],
-        outside_points[:, 1],
-        outside_points[:, 2],
-        'b-',
-        label='Track Outside Boundary'
+        leftside_points[:, 0],
+        leftside_points[:, 1],
+        leftside_points[:, 2],
+        linestyle='dashed',
+        label='Track Leftside Boundary',
+        color='#00FF00'
     )
     axis.plot(
-        drive_inside_points[:, 0],
-        drive_inside_points[:, 1],
-        drive_inside_points[:, 2],
-        'g--',
-        label='Drive Inside Boundary'
+        drive_rightside_points[:, 0],
+        drive_rightside_points[:, 1],
+        drive_rightside_points[:, 2],
+        linestyle='dashed',
+        label='Drive Rightside Boundary',
+        color='#880000'
     )
     axis.plot(
-        drive_outside_points[:, 0],
-        drive_outside_points[:, 1],
-        drive_outside_points[:, 2],
-        'g--',
-        label='Drive Outside Boundary'
+        drive_leftside_points[:, 0],
+        drive_leftside_points[:, 1],
+        drive_leftside_points[:, 2],
+        linestyle='dashed',
+        label='Drive Outside Boundary',
+        color='#008800'
     )
     # Use fixed_start_point and fixed_end_point with z-offset
     axis.scatter(
@@ -161,41 +165,44 @@ def smooth_reference_path(reference_path: np.ndarray, smooth_factor: float = 0.0
 
 def plot_sectors_with_boundaries(
     reference_path: np.ndarray,
-    drive_inside_sectors: np.ndarray,
-    drive_outside_sectors: np.ndarray,
+    drive_rightside_sectors: np.ndarray,
+    drive_leftside_sectors: np.ndarray,
     mid_sectors: np.ndarray
 ) -> None:
     """Plot the sectors with boundaries on the track."""
     fig = plt.figure()
     axis = fig.add_subplot(111, projection='3d')
     plt.title("Track Sectors with Boundaries")
-    for i in range(len(drive_inside_sectors)):
+    for i in range(len(drive_rightside_sectors)):
         axis.plot(
-            [drive_inside_sectors[i][0], drive_outside_sectors[i][0]],
-            [drive_inside_sectors[i][1], drive_outside_sectors[i][1]],
-            [drive_inside_sectors[i][2], drive_outside_sectors[i][2]],
+            [drive_rightside_sectors[i][0], drive_leftside_sectors[i][0]],
+            [drive_rightside_sectors[i][1], drive_leftside_sectors[i][1]],
+            [drive_rightside_sectors[i][2], drive_leftside_sectors[i][2]],
             'g--'
         )
     axis.plot(
         reference_path[:, 0],
         reference_path[:, 1],
         reference_path[:, 2],
-        'r-',
+        linestyle='dashed',
+        color="#000000",
         label='Center Line'
     )
     axis.plot(
-        drive_inside_sectors[:, 0],
-        drive_inside_sectors[:, 1],
-        drive_inside_sectors[:, 2],
-        'g--',
-        label='Drive Inside Boundary'
+        drive_rightside_sectors[:, 0],
+        drive_rightside_sectors[:, 1],
+        drive_rightside_sectors[:, 2],
+        linestyle='dashed',
+        color='#880000',
+        label='Drive Rightside Boundary'
     )
     axis.plot(
-        drive_outside_sectors[:, 0],
-        drive_outside_sectors[:, 1],
-        drive_outside_sectors[:, 2],
-        'g--',
-        label='Drive Outside Boundary'
+        drive_leftside_sectors[:, 0],
+        drive_leftside_sectors[:, 1],
+        drive_leftside_sectors[:, 2],
+        linestyle='dashed',
+        color='#008800',
+        label='Drive Leftside Boundary'
     )
     axis.legend()
     plt.show()

@@ -1,4 +1,2 @@
-import numpy as np
-
-sectors_indices = np.linspace(0, 755, 100, dtype=int)
-print(sectors_indices)
+A = [3, 2, 3, 4]
+print(", ".join(map(str, A)))

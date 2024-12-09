@@ -42,8 +42,9 @@ from Source.constants import (
 def load_reference_path(file_path: str) -> np.ndarray:
     """Load the reference path data from a CSV file."""
     try:
-        data = pd.read_csv(file_path, header=None, names=['x', 'y', 'z'])
-        reference_path = data[['x', 'y', 'z']].values.astype(float)
+        data = pd.read_csv(file_path, header=None)
+        reference_path = data.values.astype(float)
+        # print(reference_path)
         if len(reference_path) == 0:
             raise ValueError("Reference path is empty.")
         return reference_path
@@ -127,27 +128,27 @@ def main() -> None:
         plot_3d_lines([reference_path], title="Reference Path (Center Line)")
 
         #트랙은 8m 너비. 이 기준으로 안쪽 지점과 바깥쪽 지점 계산.
-        inside_points, outside_points, normals = compute_track_boundaries(
+        rightside_points, leftside_points, normals = compute_track_boundaries(
             reference_path, TRACK_WIDTH
         )
 
         #안전상 주행하는 한계는 트랙보다 작은 범위(DRIVE_WIDTH)로만 제한.
-        drive_inside_points, drive_outside_points, _ = compute_track_boundaries(
+        drive_rightside_points, drive_leftside_points, _ = compute_track_boundaries(
             reference_path, DRIVE_WIDTH
         )
 
         # Apply z-axis offset to drive boundaries
-        drive_inside_points[:, 2] += VEHICLE_HEIGHT / 2
-        drive_outside_points[:, 2] += VEHICLE_HEIGHT / 2
+        drive_rightside_points[:, 2] += VEHICLE_HEIGHT / 2
+        drive_leftside_points[:, 2] += VEHICLE_HEIGHT / 2
 
         #입력 레퍼런스 지점들은 750개 이상의 지점들로 이루어짐.
         #이것을 N_SECTOR개 만으로 샘플링을 함.
         #sectors_indices는 샘플링된 지점들의 번호들의 모임.
         sectors_indices = np.linspace(0, len(reference_path) - 1, N_SECTORS, dtype=int)
 
-        #샘플링된 안쪽 주행지점, 바깥쪽 주행 지점, 그리고 중앙 지점들의 좌표.
-        drive_inside_sectors = drive_inside_points[sectors_indices]
-        drive_outside_sectors = drive_outside_points[sectors_indices]
+        #샘플링된 우측 주행지점, 좌측 주행 지점, 그리고 중앙 지점들의 좌표.
+        drive_rightside_sectors = drive_rightside_points[sectors_indices]
+        drive_leftside_sectors = drive_leftside_points[sectors_indices]
         mid_sectors = reference_path[sectors_indices]
 
         # Apply z-axis offset to fixed start and end points
@@ -159,10 +160,10 @@ def main() -> None:
         # Plot with updated fixed_start_point and fixed_end_point
         plot_track_boundaries_with_normals(
             reference_path,
-            inside_points,
-            outside_points,
-            drive_inside_points,
-            drive_outside_points,
+            rightside_points,
+            leftside_points,
+            drive_rightside_points,
+            drive_leftside_points,
             normals,
             fixed_start_point,
             fixed_end_point,
@@ -170,8 +171,8 @@ def main() -> None:
 
         plot_sectors_with_boundaries(
             reference_path,
-            drive_inside_sectors,
-            drive_outside_sectors,
+            drive_rightside_sectors,
+            drive_leftside_sectors,
             mid_sectors
         )
 
@@ -180,22 +181,25 @@ def main() -> None:
             reference_path[:, 0],
             reference_path[:, 1],
             reference_path[:, 2],
-            'r-',
+            color='#000000',
+            linestyle='dashed',
             label='Center Line'
         )
         axis.plot(
-            drive_inside_points[:, 0],
-            drive_inside_points[:, 1],
-            drive_inside_points[:, 2],
-            'g--',
-            label='Drive Inside Boundary'
+            drive_rightside_points[:, 0],
+            drive_rightside_points[:, 1],
+            drive_rightside_points[:, 2],
+            color='#880000',
+            linestyle='dashed',
+            label='Drive Rightside Boundary'
         )
         axis.plot(
-            drive_outside_points[:, 0],
-            drive_outside_points[:, 1],
-            drive_outside_points[:, 2],
-            'g--',
-            label='Drive Outside Boundary'
+            drive_leftside_points[:, 0],
+            drive_leftside_points[:, 1],
+            drive_leftside_points[:, 2],
+            color='#008800',
+            linestyle='dashed',
+            label='Drive Leftside Boundary'
         )
         racing_line_plot, = axis.plot([], [], [], 'b-', label='Racing Line')
         axis.legend()
@@ -206,16 +210,16 @@ def main() -> None:
                 iteration,
                 racing_line_plot,
                 axis,
-                drive_inside_sectors,
-                drive_outside_sectors,
+                drive_rightside_sectors,
+                drive_leftside_sectors,
                 fixed_start_point,
                 fixed_end_point,
             )
 
         cost_function = lambda sectors: cost_function_wrapper(
             sectors,
-            drive_inside_sectors,
-            drive_outside_sectors,
+            drive_rightside_sectors,
+            drive_leftside_sectors,
             fixed_start_point,
             fixed_end_point,
         )
@@ -241,8 +245,8 @@ def main() -> None:
 
         racing_line = np.array(convert_sectors_to_racing_line(
             global_solution,
-            drive_inside_sectors,
-            drive_outside_sectors,
+            drive_rightside_sectors,
+            drive_leftside_sectors,
             fixed_start_point,
             fixed_end_point,
         ))
@@ -254,36 +258,41 @@ def main() -> None:
             racing_line[:, 0],
             racing_line[:, 1],
             racing_line[:, 2],
-            'b-',
+            color='#000000',
+            linestyle='dashed',
             label='Racing Line'
         )
         axis_final.plot(
-            inside_points[:, 0],
-            inside_points[:, 1],
-            inside_points[:, 2],
-            'c-',
-            label='Track Inside Boundary'
+            rightside_points[:, 0],
+            rightside_points[:, 1],
+            rightside_points[:, 2],
+            color='#FF0000',
+            linestyle='dashed',
+            label='Track Rightside Boundary'
         )
         axis_final.plot(
-            outside_points[:, 0],
-            outside_points[:, 1],
-            outside_points[:, 2],
-            'c-',
-            label='Track Outside Boundary'
+            leftside_points[:, 0],
+            leftside_points[:, 1],
+            leftside_points[:, 2],
+            color='#00FF00',
+            linestyle='dashed',
+            label='Track Leftside Boundary'
         )
         axis_final.plot(
-            drive_inside_points[:, 0],
-            drive_inside_points[:, 1],
-            drive_inside_points[:, 2],
-            'g--',
-            label='Drive Inside Boundary'
+            drive_rightside_points[:, 0],
+            drive_rightside_points[:, 1],
+            drive_rightside_points[:, 2],
+            color='#880000',
+            linestyle='dashed',
+            label='Drive Leftside Boundary'
         )
         axis_final.plot(
-            drive_outside_points[:, 0],
-            drive_outside_points[:, 1],
-            drive_outside_points[:, 2],
-            'g--',
-            label='Drive Outside Boundary'
+            drive_leftside_points[:, 0],
+            drive_leftside_points[:, 1],
+            drive_leftside_points[:, 2],
+            color='#008800',
+            linestyle='dashed',
+            label='Drive Rightside Boundary'
         )
         axis_final.scatter(
             racing_line[0, 0],
@@ -304,9 +313,15 @@ def main() -> None:
         axis_final.legend()
         plt.show()
 
+
+        racing_line = np.concatenate((racing_line, np.expand_dims(np.array([0.5] + global_solution + [0.5]), axis=-1)), axis=-1)
         racing_line_file = os.path.join(data_dir, 'racing_line_midpoints.csv')
-        df_racing_line = pd.DataFrame(racing_line, columns=['x', 'y', 'z'])
-        df_racing_line.to_csv(racing_line_file, index=False)
+        # print(racing_line)
+        # df_racing_line = pd.DataFrame(racing_line)
+        with open(racing_line_file, "w") as f:
+            for ptinfo in racing_line:
+                f.write(", ".join(map(str, ptinfo)) + "\n")
+        # df_racing_line.to_csv(racing_line_file, index=False)
         print(f"Final racing line midpoints saved to '{racing_line_file}'.")
 
         plot_lap_time_history(evaluation_history)

@@ -74,7 +74,7 @@ def optimize(
         if callback:
             callback(global_best_position, iteration)
 
-        if verbose and (iteration % 10 == 0 or iteration == n_iterations - 1):
+        if verbose and (iteration % 5 == 4 or iteration == n_iterations - 1):
             print(f"Iteration {iteration + 1}/{n_iterations}, Best Score: {global_best_score}")
 
     return global_best_position, global_best_score, global_history, evaluation_history
