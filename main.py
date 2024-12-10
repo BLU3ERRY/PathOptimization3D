@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from typing import List, Callable
+import time
 
 # Add the 'Source' directory to sys.path
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -117,6 +118,7 @@ def cost_function_wrapper(
     )
 
 def main() -> None:
+    start = int(time.time())
     """Main function to execute the optimization of the racing line."""
     try:
         #불러오기
@@ -330,6 +332,7 @@ def main() -> None:
 
     except Exception as e:
         print(f"An error occurred: {e}")
-
+    print("***run time(sec) :", int(time.time()) - start)
+    
 if __name__ == "__main__":
     main()
