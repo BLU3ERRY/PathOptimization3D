@@ -2,7 +2,7 @@
 
 # Track and Drive Widths (in meters)
 TRACK_WIDTH = 8.0
-DRIVE_WIDTH = 6.0  # Set narrower than TRACK_WIDTH for safety margins
+DRIVE_WIDTH = 5.5  # Set narrower than TRACK_WIDTH for safety margins
 
 # Number of sectors
 N_SECTORS = 100
@@ -10,7 +10,7 @@ N_OPTIMIZABLE_SECTORS = N_SECTORS - 2  # Exclude first and last sectors
 
 # PSO Parameters
 N_PARTICLES = 100
-N_ITERATIONS = 100
+N_ITERATIONS = 1000
 
 # Optimization Boundaries
 BOUNDARIES = [(0.0, 1.0) for _ in range(N_OPTIMIZABLE_SECTORS)]
