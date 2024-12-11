@@ -52,13 +52,13 @@ def calculate_lap_time_with_constraints(
         return np.inf
     max_curvature = 1.0 / min_turn_radius
 
-    for j in range(1, len(racing_line) - 1):
-        p_prev = racing_line[j - 1]
-        p_curr = racing_line[j]
-        p_next = racing_line[j + 1]
-        curvature = calculate_curvature(p_prev, p_curr, p_next)
-        if curvature >= max_curvature:
-            return np.inf
+    # for j in range(1, len(racing_line) - 1):
+    #     p_prev = racing_line[j - 1]
+    #     p_curr = racing_line[j]
+    #     p_next = racing_line[j + 1]
+    #     curvature = calculate_curvature(p_prev, p_curr, p_next)
+    #     if curvature >= max_curvature:
+    #         return np.inf
 
     return lap_time
 

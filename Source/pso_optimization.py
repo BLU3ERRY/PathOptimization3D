@@ -9,6 +9,9 @@ def optimize(
     boundaries: List[Tuple[float, float]],
     n_particles: int,
     n_iterations: int,
+    inertia_weight: float,
+    cognitive_param: float,
+    social_param: float,
     verbose: bool = False,
     callback: Callable[[List[float], int], None] = None
 ) -> Tuple[List[float], float, List[List[float]], List[float]]:
@@ -21,9 +24,6 @@ def optimize(
     n_particles: int, 각 SECTOR 마다 적용하는 swarm particle의 개수.
     n_iterations: int, 최적화 계산 반복 횟수
     """
-    inertia_weight = 0.5  # Inertia weight
-    cognitive_param = 1.5  # Cognitive parameter
-    social_param = 1.5  # Social parameter
 
     #swarm은 여러 개의 particle의 모임.
     #swarm position의 각 i번째 행은 i번째 particle이며, 각 particle은 n_dimension개의 sector의 값 (0.0부터 1.0까지)이 담겨있음.
@@ -49,32 +49,35 @@ def optimize(
         print(f"Initial global best score: {global_best_score}")
 
     #본 계산 작업
-    for iteration in range(n_iterations):
-        for i in range(n_particles):
-            r1 = np.random.rand(n_dimensions)
-            r2 = np.random.rand(n_dimensions)
-            swarm_velocity[i] = (
-                inertia_weight * swarm_velocity[i]
-                + cognitive_param * r1 * (swarm_best_position[i] - swarm_position[i])
-                + social_param * r2 * (global_best_position - swarm_position[i])
-            )
-            swarm_position[i] += swarm_velocity[i]
-            swarm_position[i] = np.clip(swarm_position[i], [b[0] for b in boundaries], [b[1] for b in boundaries])
-            score = cost_function(swarm_position[i].tolist())
-            if score < swarm_best_score[i]:
-                swarm_best_score[i] = score
-                swarm_best_position[i] = swarm_position[i]
-                if score < global_best_score:
-                    global_best_score = score
-                    global_best_position = swarm_position[i].tolist()
+    try:
+        for iteration in range(n_iterations):
+            for i in range(n_particles):
+                r1 = np.random.rand(n_dimensions)
+                r2 = np.random.rand(n_dimensions)
+                swarm_velocity[i] = (
+                    inertia_weight * swarm_velocity[i]
+                    + cognitive_param * r1 * (swarm_best_position[i] - swarm_position[i])
+                    + social_param * r2 * (global_best_position - swarm_position[i])
+                )
+                swarm_position[i] += swarm_velocity[i]
+                swarm_position[i] = np.clip(swarm_position[i], [b[0] for b in boundaries], [b[1] for b in boundaries])
+                score = cost_function(swarm_position[i].tolist())
+                if score < swarm_best_score[i]:
+                    swarm_best_score[i] = score
+                    swarm_best_position[i] = swarm_position[i]
+                    if score < global_best_score:
+                        global_best_score = score
+                        global_best_position = swarm_position[i].tolist()
 
-        global_history.append(list(global_best_position))
-        evaluation_history.append(global_best_score)
+            global_history.append(list(global_best_position))
+            evaluation_history.append(global_best_score)
 
-        if callback:
-            callback(global_best_position, iteration)
+            if callback:
+                callback(global_best_position, iteration)
 
-        if verbose and (iteration % 5 == 4 or iteration == n_iterations - 1):
-            print(f"Iteration {iteration + 1}/{n_iterations}, Best Score: {global_best_score}")
+            if verbose:
+                print(f"Iteration {iteration + 1}/{n_iterations}, Best Score: {global_best_score}")
+    except KeyboardInterrupt:
+        pass
 
     return global_best_position, global_best_score, global_history, evaluation_history

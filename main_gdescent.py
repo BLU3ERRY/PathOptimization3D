@@ -6,7 +6,7 @@ import sys
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from typing import List, Callable
+from typing import List, Callable, Tuple
 import time
 
 # Add the 'Source' directory to sys.path
@@ -35,8 +35,9 @@ from Source.constants import (
     DRIVE_WIDTH,
     N_SECTORS,
     N_OPTIMIZABLE_SECTORS,
-    N_ITERATIONS,
-    BOUNDARIES,
+    GDESC_N_ITERATIONS,
+    LEARNING_RATE,
+    DELTA,
     VEHICLE_HEIGHT,
 )
 
@@ -54,14 +55,14 @@ def load_reference_path(file_path: str) -> np.ndarray:
     except Exception as e:
         raise RuntimeError(f"Failed to load reference path: {e}")
 
-def preprocess_reference_path(reference_path: np.ndarray) -> np.ndarray:
+def preprocess_reference_path(reference_path: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """Smooth the reference path and ensure it is suitable for processing."""
     try:
-        smoothed_path = smooth_reference_path(reference_path, smooth_factor=1.0)
-        return smoothed_path
+        smoothed_path, is_danger = smooth_reference_path(reference_path, smooth_factor=1.0)
+        return smoothed_path, is_danger
     except Exception as e:
         print(f"Warning: {e}. Using original reference path.")
-        return reference_path
+        return reference_path[:, :3], reference_path[:, 3]
 
 def initialize_plotting() -> tuple:
     """Initialize real-time plotting."""
@@ -117,15 +118,18 @@ def cost_function_wrapper(
     )
 
 def main() -> None:
-    start = int(time.time())
-    """Main function to execute the optimization of the racing line."""
-    try:
+        start = int(time.time())
+        """Main function to execute the optimization of the racing line."""
+    # try:
         #불러오기
-        reference_path_file = os.path.join(data_dir, 'reference_path.csv')
-        reference_path = load_reference_path(reference_path_file)
+        ref_path_file = input("경로 입력 : ")
+        if not ("annotated" in ref_path_file):
+            print("annotate it first.")
+            exit(1)
+        reference_path = load_reference_path(ref_path_file)
         
         #스플라인 전처리
-        reference_path = preprocess_reference_path(reference_path)
+        reference_path, is_danger = preprocess_reference_path(reference_path)
 
         plot_3d_lines([reference_path], title="Reference Path (Center Line)")
 
@@ -152,6 +156,7 @@ def main() -> None:
         drive_rightside_sectors = drive_rightside_points[sectors_indices]
         drive_leftside_sectors = drive_leftside_points[sectors_indices]
         mid_sectors = reference_path[sectors_indices]
+        sectors_dangerous = is_danger[sectors_indices]
 
         # Apply z-axis offset to fixed start and end points
         fixed_start_point = mid_sectors[0].copy()
@@ -232,12 +237,16 @@ def main() -> None:
         sample_lap_time = cost_function(sample_sectors)
         print(f"Sample lap time: {sample_lap_time}")
 
+        BOUNDARIES = [((0.0, 1.0) if sector < 0.5 else (0.5, 0.5)) for sector in sectors_dangerous]
+
         #PSO 최적화 수행
         global_solution, global_evaluation, global_history, evaluation_history = optimize(
             cost_function=cost_function,
             n_dimensions=N_OPTIMIZABLE_SECTORS,
-            boundaries=BOUNDARIES,
-            n_iterations=N_ITERATIONS,
+            boundaries=BOUNDARIES[1:-1],
+            n_iterations=GDESC_N_ITERATIONS,
+            learning_rate=LEARNING_RATE,
+            delta=DELTA,
             verbose=True,
             callback=callback,
         )
@@ -314,9 +323,10 @@ def main() -> None:
         axis_final.legend()
         plt.show()
 
-
-        racing_line = np.concatenate((racing_line, np.expand_dims(np.array([0.5] + global_solution + [0.5]), axis=-1)), axis=-1)
-        racing_line_file = os.path.join(data_dir, 'racing_line_midpoints_gdescent.csv')
+        racing_line = np.concatenate((racing_line,
+                                      np.expand_dims(np.array([0.5] + global_solution + [0.5]), axis=-1),
+                                      np.expand_dims(sectors_dangerous, axis=-1)), axis=-1)
+        racing_line_file = os.path.join(os.path.dirname(ref_path_file), os.path.basename(ref_path_file).replace("annotated", "optimized_gdescent"))
         # print(racing_line)
         # df_racing_line = pd.DataFrame(racing_line)
         with open(racing_line_file, "w") as f:
@@ -328,9 +338,9 @@ def main() -> None:
         plot_lap_time_history(evaluation_history)
         print("All tasks completed successfully.")
 
-    except Exception as e:
-        print(f"An error occurred: {e}")
-    print("***run time(sec) :", int(time.time()) - start)
+    # except Exception as e:
+    #     print(f"An error occurred: {e}")
+        print("***run time(sec) :", int(time.time()) - start)
     
 if __name__ == "__main__":
     main()

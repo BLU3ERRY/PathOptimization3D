@@ -140,14 +140,15 @@ def plot_3d_lines(lines: List[np.ndarray], title: str = "3D Plot") -> None:
     plt.title(title)
     plt.show()
 
-def smooth_reference_path(reference_path: np.ndarray, smooth_factor: float = 0.0) -> np.ndarray:
+def smooth_reference_path(reference_path: np.ndarray, smooth_factor: float = 0.0) -> Tuple[np.ndarray, np.ndarray]:
     """
     레퍼런스 전처리 과정
     -------------------------
-    reference_path: np.ndarray (N x 3), 입력 경로의 좌표
+    reference_path: np.ndarray (N x 4), 입력 경로의 좌표 및 위험 구간 표기
     smooth_factor: float (0 이상.)
     -------------------------
     smoothed_path: np.ndarray (M x 3), 전처리된 결과 경로 좌표
+    is_danger: np.ndarray (M), 트랙의 위험 유무
     """
     if smooth_factor < 0:
         raise ValueError("Smooth factor must be non-negative.")
@@ -157,11 +158,11 @@ def smooth_reference_path(reference_path: np.ndarray, smooth_factor: float = 0.0
     reference_path = reference_path[np.isfinite(reference_path).all(axis=1)]
     if len(reference_path) < 4:
         raise ValueError("Not enough unique points to perform smoothing.")
-    x, y, z = reference_path[:, 0], reference_path[:, 1], reference_path[:, 2]
+    x, y, z, is_danger = reference_path[:, 0], reference_path[:, 1], reference_path[:, 2], reference_path[:, 3]
     tck, _ = interpolate.splprep([x, y, z], s=smooth_factor, per=True)
     smoothed_x, smoothed_y, smoothed_z = interpolate.splev(np.linspace(0, 1, len(reference_path)), tck)
     smoothed_path = np.vstack([smoothed_x, smoothed_y, smoothed_z]).T
-    return smoothed_path
+    return (smoothed_path, is_danger)
 
 def plot_sectors_with_boundaries(
     reference_path: np.ndarray,

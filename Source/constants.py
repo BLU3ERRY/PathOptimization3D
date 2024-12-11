@@ -5,15 +5,20 @@ TRACK_WIDTH = 8.0
 DRIVE_WIDTH = 4.5  # Set narrower than TRACK_WIDTH for safety margins
 
 # Number of sectors
-N_SECTORS = 100
+N_SECTORS = 600
 N_OPTIMIZABLE_SECTORS = N_SECTORS - 2  # Exclude first and last sectors
 
 # PSO Parameters
-N_PARTICLES = 150
-N_ITERATIONS = 50
+PSO_N_PARTICLES = 150
+PSO_N_ITERATIONS = 100
+INERTIA_WEIGHT = 0.5
+COGNITIVE_PARAM = 1.5
+SOCIAL_PARAM = 1.5
 
-# Optimization Boundaries
-BOUNDARIES = [(0.0, 1.0) for _ in range(N_OPTIMIZABLE_SECTORS)]
+# G-descent Parameters
+GDESC_N_ITERATIONS = 30
+LEARNING_RATE = 0.1
+DELTA = 0.01
 
 # Vehicle Specifications
 VEHICLE_LENGTH = 2.1        # meters
