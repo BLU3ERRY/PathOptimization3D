@@ -1,12 +1,19 @@
-import os
+from Source.utilities import smooth_reference_path
+import numpy as np
+import trimesh
 
-path = input(" : ")
-with open(path, "r") as f:
+with open(input(" : "), "r") as f:
     lines = f.readlines()
 
-filename = os.path.basename(path).replace(".csv", "_reversed.csv")
-dirname = os.path.dirname(path)
+data = []
 
-with open(os.path.join(dirname, filename), "w") as f:
-    for line in lines[::-1]:
-        f.write(line)
+for line in lines:
+    data.append(list(map(float, line.replace("\t", " ").replace("\n", " ").replace(",", " ").split())))
+
+path, isdanger = smooth_reference_path(np.array(data), smooth_factor=1.0)
+
+scene = trimesh.Scene()
+pc = trimesh.PointCloud(path, [255, 0, 0])
+scene.add_geometry(pc)
+
+scene.show()

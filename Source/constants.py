@@ -2,7 +2,7 @@
 
 # Track and Drive Widths (in meters)
 TRACK_WIDTH = 8.0
-DRIVE_WIDTH = 4.5  # Set narrower than TRACK_WIDTH for safety margins
+DRIVE_WIDTH = 3.5  # Set narrower than TRACK_WIDTH for safety margins
 
 # Number of sectors
 N_SECTORS = 600

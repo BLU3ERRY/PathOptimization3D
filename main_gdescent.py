@@ -58,8 +58,9 @@ def load_reference_path(file_path: str) -> np.ndarray:
 def preprocess_reference_path(reference_path: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """Smooth the reference path and ensure it is suitable for processing."""
     try:
-        smoothed_path, is_danger = smooth_reference_path(reference_path, smooth_factor=1.0)
-        return smoothed_path, is_danger
+        # smoothed_path, is_danger = smooth_reference_path(reference_path, smooth_factor=1.0)
+        # return smoothed_path, is_danger
+        raise Exception #오히려 전처리하는 것이 안 좋음.
     except Exception as e:
         print(f"Warning: {e}. Using original reference path.")
         return reference_path[:, :3], reference_path[:, 3]
@@ -326,7 +327,7 @@ def main() -> None:
         racing_line = np.concatenate((racing_line,
                                       np.expand_dims(np.array([0.5] + global_solution + [0.5]), axis=-1),
                                       np.expand_dims(sectors_dangerous, axis=-1)), axis=-1)
-        racing_line_file = os.path.join(os.path.dirname(ref_path_file), os.path.basename(ref_path_file).replace("annotated", "optimized_gdescent"))
+        racing_line_file = os.path.join(os.path.dirname(ref_path_file), os.path.basename(ref_path_file).replace("annotated", "optimized_gdescent").replace(".csv", f"_DW{DRIVE_WIDTH}_NSEC{N_SECTORS}_NITER{GDESC_N_ITERATIONS}_LR{LEARNING_RATE}_DELTA{DELTA}.csv"))
         # print(racing_line)
         # df_racing_line = pd.DataFrame(racing_line)
         with open(racing_line_file, "w") as f:

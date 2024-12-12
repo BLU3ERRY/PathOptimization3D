@@ -59,8 +59,9 @@ def load_reference_path(file_path: str) -> np.ndarray:
 def preprocess_reference_path(reference_path: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """Smooth the reference path and ensure it is suitable for processing."""
     try:
-        smoothed_path, is_danger = smooth_reference_path(reference_path, smooth_factor=1.0)
-        return smoothed_path, is_danger
+        # smoothed_path, is_danger = smooth_reference_path(reference_path, smooth_factor=1.0)
+        # return smoothed_path, is_danger
+        raise Exception #오히려 전처리하는 것이 안 좋은 거 같음.
     except Exception as e:
         print(f"Warning: {e}. Using original reference path.")
         return reference_path[:, :3], reference_path[:, 3]
