@@ -2,7 +2,7 @@
 
 # Track and Drive Widths (in meters)
 TRACK_WIDTH = 8.0
-DRIVE_WIDTH = 3.5  # Set narrower than TRACK_WIDTH for safety margins
+DRIVE_WIDTH = 5.5  # Set narrower than TRACK_WIDTH for safety margins
 
 # Number of sectors
 N_SECTORS = 600
@@ -17,7 +17,7 @@ SOCIAL_PARAM = 1.5
 
 # G-descent Parameters
 GDESC_N_ITERATIONS = 30
-LEARNING_RATE = 0.1
+LEARNING_RATE = 0.03
 DELTA = 0.01
 
 # Vehicle Specifications
